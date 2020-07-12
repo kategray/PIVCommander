@@ -1,13 +1,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.aerobatt</groupId>
-    <artifactId>PIVCommander</artifactId>
+    <artifactId>pivcommander</artifactId>
     <version>0.1</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        
+        <!-- App properties for compiling -->
+        <app.mainClass>com.aerobatt.pivcommander.App</app.mainClass>
+        <app.shortVersion>0.1</app.shortVersion>
+        <app.longVersion>0.1.0.0</app.longVersion>
+        <app.shortName>pivcommander</app.shortName>
+        <app.longName>PIV Commander</app.longName>
+        <app.description>PIV Card Provisioning App</app.description>
+        <app.copyright>Copyright 2020, Kate Gray</app.copyright>
     </properties>
     <build>
         <plugins>
@@ -26,7 +35,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.4</version>
                 <configuration>
-                    <mainClass>com.aerobatt.pivcommander.App</mainClass>
+                    <mainClass>${app.mainClass}</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -58,16 +67,97 @@
                         <id>ide-profile</id>
                         <configuration>
                             <options>
-				<option>${profiler.jvmargs.arg1}</option>
-				<option>${profiler.jvmargs.arg2}</option>
-				<option>${profiler.jvmargs.arg3}</option>
-				<option>${profiler.jvmargs.arg4}</option>
-				<option>${profiler.jvmargs.arg5}</option>
+                                <option>${profiler.jvmargs.arg1}</option>
+                                <option>${profiler.jvmargs.arg2}</option>
+                                <option>${profiler.jvmargs.arg3}</option>
+                                <option>${profiler.jvmargs.arg4}</option>
+                                <option>${profiler.jvmargs.arg5}</option>
                             </options>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+            
+            <!-- Shade dependencies into a single jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${app.shortName}</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>${app.mainClass}</mainClass>
+                                    <manifestEntries>
+                                        <Main-Class>${app.mainClass}</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                            
+                            <!-- Ignore signatures, as we are mangling the dependencies -->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>         
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            
+            <!-- Build executable from the jar using launch4j -->        
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.25</version>
+                <executions>
+                    <execution>
+                        <id>${project.build.finalName}</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>target/${app.shortName}.exe</outfile>
+                            <jar>target/${app.shortName}.jar</jar>
+                            <errTitle>${app.longName}</errTitle>
+                            <classPath>
+                                <mainClass>${app.mainClass}</mainClass>
+                                <addDependencies>true</addDependencies>
+                                <preCp>anything</preCp>
+                            </classPath>
+                            <jre>
+                                <minVersion>1.8.0</minVersion>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>${app.longVersion}</fileVersion>
+                                <txtFileVersion>v${app.shortVersion}</txtFileVersion>
+                                <fileDescription>${app.description}</fileDescription>
+                                <copyright>${app.copyright}</copyright>
+                                <productVersion>${app.longVersion}</productVersion>
+                                <txtProductVersion>v${app.shortVersion}</txtProductVersion>
+                                <productName>${app.longName}</productName>
+                                <internalName>${app.shortName}</internalName>
+                                <originalFilename>${project.build.finalName}.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+                
         </plugins>
     </build>
     <profiles>
@@ -90,4 +180,26 @@
             </dependencies>
         </profile>
     </profiles>
+    
+    <!-- Application dependencies -->
+    <dependencies>
+        <!-- Global Platform and card Secure Channel -->
+        <dependency>
+            <groupId>com.github.martinpaljak</groupId>
+            <artifactId>globalplatformpro</artifactId>
+            <version>19.06.16</version>
+        </dependency>
+        
+        <!-- Modern UI -->
+        <dependency>
+            <groupId>com.jfoenix</groupId>
+            <artifactId>jfoenix</artifactId>
+            <version>8.0.10</version>
+        </dependency>
+        <dependency>
+            <groupId>com.licel</groupId>
+            <artifactId>jcardsim</artifactId>
+            <version>2.2.1</version>
+        </dependency>
+    </dependencies>
 </project>
